@@ -43,6 +43,13 @@ pub fn handle_window_moved_or_resized(
       properties.frame = frame_position.clone();
     });
 
+    // Restoring an overlay emits intermediate native rectangles (including
+    // shadow-border adjustments). Only a user drag should replace its placement.
+    if state.scratchpad.as_ref().is_some_and(|s| s.id == window.id())
+      && !is_interactive_start && !is_interactive_end && window.active_drag().is_none()
+      && !window.native().is_maximized().unwrap_or(false)
+    { return Ok(()); }
+
     // Dragging a monocle tile must not overwrite its saved split proportions.
     if window.is_focus_mode_member()
       && window.workspace().is_some_and(|w| w.focus_mode())

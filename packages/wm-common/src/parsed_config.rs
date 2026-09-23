@@ -197,6 +197,7 @@ pub struct FloatingStateConfig {
   pub centered: bool,
 
   /// Whether to show floating windows as always on top.
+  #[serde(alias = "shownOnTop")]
   pub shown_on_top: bool,
 }
 
@@ -216,6 +217,7 @@ pub struct FullscreenStateConfig {
   pub maximized: bool,
 
   /// Whether to show fullscreen windows as always on top.
+  #[serde(alias = "shownOnTop")]
   pub shown_on_top: bool,
 }
 

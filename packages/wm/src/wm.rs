@@ -799,6 +799,12 @@ impl WindowManager {
     config: &mut UserConfig,
     ipc_server: &mut IpcServer,
   ) {
+    // Release the session-owned overlay before shutdown, including hidden ones.
+    if let Err(error) = crate::commands::general::scratchpad_remove(&mut self.state, config)
+      .and_then(|_| crate::commands::general::sync_scratchpad(&mut self.state, config))
+      .and_then(|_| platform_sync(&mut self.state, config))
+    { tracing::warn!("Scratchpad shutdown cleanup failed: {error}"); }
+
     self.state.emit_event(WmEvent::ApplicationExiting);
 
     // Ensure that the WM is unpaused, otherwise, shutdown commands won't

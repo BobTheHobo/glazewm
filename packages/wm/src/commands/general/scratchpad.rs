@@ -87,3 +87,19 @@ pub fn sync_scratchpad(state: &mut WmState, config: &UserConfig) -> anyhow::Resu
   }
   Ok(())
 }
+
+#[cfg(test)]
+mod scratchpad_state_tests {
+  use wm_common::{FloatingStateConfig, FullscreenStateConfig};
+  #[test]
+  fn topmost_survives_ipc_and_yaml_spelling() {
+    let original = FloatingStateConfig { centered: false, shown_on_top: true };
+    let json = serde_json::to_string(&original).unwrap();
+    let roundtrip: FloatingStateConfig = serde_json::from_str(&json).unwrap();
+    assert_eq!(roundtrip, original);
+    let yaml_spelling: FloatingStateConfig = serde_json::from_str(r#"{"shown_on_top":true}"#).unwrap();
+    assert!(yaml_spelling.shown_on_top);
+    let fullscreen: FullscreenStateConfig = serde_json::from_str(r#"{"shownOnTop":true}"#).unwrap();
+    assert!(fullscreen.shown_on_top);
+  }
+}
