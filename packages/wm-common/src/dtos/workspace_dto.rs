@@ -22,6 +22,8 @@ pub struct WorkspaceDto {
   pub focus_mode: bool,
   #[serde(default)]
   pub scratchpad: Option<ScratchpadDto>,
+  #[serde(default)]
+  pub scratchpad_hint_at: u64,
   pub width: i32,
   pub height: i32,
   pub x: i32,

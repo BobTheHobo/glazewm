@@ -50,7 +50,7 @@ pub fn scratchpad_remove(state: &mut WmState, config: &UserConfig) -> anyhow::Re
 }
 
 pub fn scratchpad_toggle(state: &mut WmState, config: &UserConfig) -> anyhow::Result<()> {
-  let window = tracked(state).context("No scratchpad window; mark a window first")?;
+  let Some(window) = tracked(state) else { return scratchpad_hint(state); };
   if window.state() != WindowState::Minimized {
     update_window_state(window, WindowState::Minimized, state, config)?;
   } else {
@@ -102,4 +102,12 @@ mod scratchpad_state_tests {
     let fullscreen: FullscreenStateConfig = serde_json::from_str(r#"{"shownOnTop":true}"#).unwrap();
     assert!(fullscreen.shown_on_top);
   }
+}
+
+pub fn scratchpad_hint(state: &mut WmState) -> anyhow::Result<()> {
+  if let Some(workspace) = state.focused_container().and_then(|c| c.workspace()) {
+    workspace.show_scratchpad_hint();
+    state.emit_event(WmEvent::WorkspaceUpdated { updated_workspace: workspace.to_dto()? });
+  }
+  Ok(())
 }

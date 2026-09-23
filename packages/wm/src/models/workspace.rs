@@ -34,6 +34,7 @@ struct WorkspaceInner {
   tiling_direction: TilingDirection,
   focus_mode: bool,
   scratchpad: Option<wm_common::ScratchpadDto>,
+  scratchpad_hint_at: u64,
 }
 
 impl Workspace {
@@ -52,10 +53,13 @@ impl Workspace {
       tiling_direction,
       focus_mode: false,
       scratchpad: None,
+      scratchpad_hint_at: 0,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
   }
+
+  pub fn show_scratchpad_hint(&self) { self.0.borrow_mut().scratchpad_hint_at = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis() as u64; }
 
   pub fn scratchpad(&self) -> Option<wm_common::ScratchpadDto> { self.0.borrow().scratchpad.clone() }
   pub fn set_scratchpad(&self, value: Option<wm_common::ScratchpadDto>) { self.0.borrow_mut().scratchpad = value; }
@@ -181,6 +185,7 @@ impl Workspace {
       is_displayed: self.is_displayed(),
       focus_mode: self.focus_mode(),
       scratchpad: self.scratchpad(),
+      scratchpad_hint_at: self.0.borrow().scratchpad_hint_at,
       width: rect.width(),
       height: rect.height(),
       x: rect.x(),

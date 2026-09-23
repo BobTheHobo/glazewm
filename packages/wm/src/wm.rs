@@ -705,7 +705,10 @@ impl WindowManager {
         }
         _ => Ok(()),
       },
-      InvokeCommand::ScratchpadAdd => crate::commands::general::scratchpad_add(subject_container.as_window_container()?, state, config),
+      InvokeCommand::ScratchpadAdd => match subject_container.as_window_container() {
+        Ok(window) => crate::commands::general::scratchpad_add(window, state, config),
+        Err(_) => crate::commands::general::scratchpad_hint(state),
+      },
       InvokeCommand::ScratchpadToggle => crate::commands::general::scratchpad_toggle(state, config),
       InvokeCommand::ScratchpadRemove => crate::commands::general::scratchpad_remove(state, config),
       InvokeCommand::ToggleFocusMode => {
