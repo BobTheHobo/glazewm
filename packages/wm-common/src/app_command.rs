@@ -230,6 +230,9 @@ pub enum InvokeCommand {
   },
   /// Toggle workspace-local monocle presentation without changing its tiling tree.
   ToggleFocusMode,
+  ScratchpadAdd,
+  ScratchpadToggle,
+  ScratchpadRemove,
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,

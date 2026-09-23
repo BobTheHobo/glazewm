@@ -13,3 +13,6 @@ pub use platform_sync::*;
 pub use reload_config::*;
 pub use shell_exec::*;
 pub use toggle_pause::*;
+
+mod scratchpad;
+pub use scratchpad::*;

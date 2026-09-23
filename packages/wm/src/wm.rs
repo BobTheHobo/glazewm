@@ -80,6 +80,7 @@ impl WindowManager {
   ) -> anyhow::Result<()> {
     let state = &mut self.state;
 
+    let sync_scratchpad = !matches!(&event, PlatformEvent::Mouse(_));
     match event {
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
@@ -143,6 +144,7 @@ impl WindowManager {
       },
     }?;
 
+    if !state.is_paused && sync_scratchpad { crate::commands::general::sync_scratchpad(state, config)?; }
     if !state.is_paused && state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
@@ -175,6 +177,7 @@ impl WindowManager {
       config,
     )?;
 
+    crate::commands::general::sync_scratchpad(state, config)?;
     if state.pending_sync.has_changes() {
       platform_sync(state, config)?;
     }
@@ -702,6 +705,9 @@ impl WindowManager {
         }
         _ => Ok(()),
       },
+      InvokeCommand::ScratchpadAdd => crate::commands::general::scratchpad_add(subject_container.as_window_container()?, state, config),
+      InvokeCommand::ScratchpadToggle => crate::commands::general::scratchpad_toggle(state, config),
+      InvokeCommand::ScratchpadRemove => crate::commands::general::scratchpad_remove(state, config),
       InvokeCommand::ToggleFocusMode => {
         let workspace = subject_container.workspace().context("No workspace.")?;
         workspace.set_focus_mode(!workspace.focus_mode());

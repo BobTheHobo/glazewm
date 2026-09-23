@@ -20,9 +20,20 @@ pub struct WorkspaceDto {
   pub is_displayed: bool,
   #[serde(default)]
   pub focus_mode: bool,
+  #[serde(default)]
+  pub scratchpad: Option<ScratchpadDto>,
   pub width: i32,
   pub height: i32,
   pub x: i32,
   pub y: i32,
   pub tiling_direction: TilingDirection,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScratchpadDto {
+  pub id: Uuid,
+  pub hidden: bool,
+  pub title: String,
+  pub process_name: String,
 }

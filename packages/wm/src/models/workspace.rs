@@ -33,6 +33,7 @@ struct WorkspaceInner {
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
   focus_mode: bool,
+  scratchpad: Option<wm_common::ScratchpadDto>,
 }
 
 impl Workspace {
@@ -50,10 +51,14 @@ impl Workspace {
       gaps_config,
       tiling_direction,
       focus_mode: false,
+      scratchpad: None,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
   }
+
+  pub fn scratchpad(&self) -> Option<wm_common::ScratchpadDto> { self.0.borrow().scratchpad.clone() }
+  pub fn set_scratchpad(&self, value: Option<wm_common::ScratchpadDto>) { self.0.borrow_mut().scratchpad = value; }
 
   pub fn focus_mode(&self) -> bool { self.0.borrow().focus_mode }
 
@@ -175,6 +180,7 @@ impl Workspace {
       has_focus: self.has_focus(None),
       is_displayed: self.is_displayed(),
       focus_mode: self.focus_mode(),
+      scratchpad: self.scratchpad(),
       width: rect.width(),
       height: rect.height(),
       x: rect.x(),

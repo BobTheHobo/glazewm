@@ -35,6 +35,7 @@ pub struct WmState {
   pub dispatcher: Dispatcher,
 
   pub pending_sync: PendingSync,
+  pub scratchpad: Option<crate::commands::general::Scratchpad>,
 
   /// Name of the most recently focused workspace.
   ///
@@ -87,6 +88,7 @@ impl WmState {
       root_container: RootContainer::new(),
       dispatcher,
       pending_sync: PendingSync::default(),
+      scratchpad: None,
       prev_effects_window: None,
       recent_workspace_name: None,
       unmanaged_or_minimized_timestamp: None,

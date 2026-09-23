@@ -565,7 +565,9 @@ fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let border_color = if effect_config.border.enabled {
+  let scratchpad_color = wm_platform::Color { r: 255, g: 165, b: 0, a: 255 };
+  let is_scratchpad = window.workspace().and_then(|w| w.scratchpad()).is_some_and(|s| s.id == window.id());
+  let border_color = if is_scratchpad { Some(&scratchpad_color) } else if effect_config.border.enabled {
     Some(&effect_config.border.color)
   } else {
     None
