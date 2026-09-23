@@ -29,6 +29,10 @@ pub fn manage_window(
     return Ok(());
   };
 
+  #[cfg(target_os = "windows")]
+  try_warn!(wm_platform::register_window_recovery(&native_window)
+    .with_context(|| format!("Register window recovery for {:?}", native_window.id())));
+
   // Create the window instance. This may fail if the window handle has
   // already been destroyed.
   let window = try_warn!(create_window(

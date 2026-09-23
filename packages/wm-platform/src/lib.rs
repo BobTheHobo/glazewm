@@ -38,3 +38,8 @@ pub use windows::Win32::UI::WindowsAndMessaging::{
   WINDOW_STYLE, WS_CAPTION, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
   WS_MAXIMIZEBOX,
 };
+
+#[cfg(target_os = "windows")]
+mod window_recovery;
+#[cfg(target_os = "windows")]
+pub use window_recovery::*;

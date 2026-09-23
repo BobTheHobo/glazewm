@@ -8,8 +8,6 @@ use wm_common::{BindingModeConfig, HideCorner, WindowState, WmEvent};
 use wm_platform::{
   Direction, Dispatcher, Display, NativeWindow, Point, Rect,
 };
-#[cfg(target_os = "windows")]
-use wm_platform::{NativeWindowWindowsExt, OpacityValue};
 
 use crate::{
   commands::{
@@ -680,8 +678,8 @@ impl WmState {
   }
 }
 
-impl Drop for WmState {
-  fn drop(&mut self) {
+impl WmState {
+  pub fn restore_windows(&self) {
     let managed_windows = self.windows();
 
     for window in &managed_windows {
@@ -693,20 +691,14 @@ impl Drop for WmState {
         }
       }
 
-      // Reset any effects on Windows.
-      #[cfg(target_os = "windows")]
-      {
-        let _ = window.native().set_cloaked(false);
-        if let Err(err) = window.native().show() {
-          warn!("Failed to show window: {:?}", err);
-        }
-
-        let _ = window.native().set_taskbar_visibility(true);
-        let _ = window.native().set_border_color(None);
-        let _ = window
-          .native()
-          .set_transparency(&OpacityValue::from_alpha(u8::MAX));
-      }
+    }
+    #[cfg(target_os = "windows")]
+    if let Err(error) = wm_platform::recover_windows(Some(std::process::id())) {
+      warn!("Window recovery sweep failed: {error}");
     }
   }
+}
+
+impl Drop for WmState {
+  fn drop(&mut self) { self.restore_windows(); }
 }

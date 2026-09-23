@@ -123,21 +123,17 @@ async fn start_wm(
   // Add application icon to system tray.
   let mut tray = SystemTray::new(&config.path, dispatcher.clone())?;
 
+  // Recover records from a previous crash before enumerating visible windows.
+  #[cfg(target_os = "windows")]
+  {
+    wm_platform::recover_windows(None).context("Recovering orphaned windows")?;
+    // Fail startup before hiding windows if crash recovery cannot be launched.
+    start_watcher_process().await?;
+  }
+
   let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
 
   let mut ipc_server = IpcServer::start().await?;
-
-  // On Windows, start watcher process for restoring hidden windows on
-  // crash. macOS' hidden windows are always accessible.
-  #[cfg(target_os = "windows")]
-  if let Err(err) = start_watcher_process() {
-    tracing::warn!(
-      "Failed to start watcher process: {err}{}",
-      cfg!(debug_assertions)
-        .then_some(".\n Run `cargo build -p wm-watcher` to build it.")
-        .unwrap_or_default()
-    );
-  }
 
   // On macOS, update the current process' PATH variable so that
   // `shell-exec` can resolve programs defined in the shell's PATH. Skip if
@@ -333,16 +329,27 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
 /// This assumes the watcher binary exists in the same directory as the
 /// WM binary.
 #[allow(unused)]
-fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
+async fn start_watcher_process() -> anyhow::Result<tokio::process::Child, Error>
 {
   let watcher_path = env::current_exe()?
     .parent()
     .context("Failed to resolve path to the watcher process.")?
     .join("glazewm-watcher");
 
-  Command::new(&watcher_path)
+  use tokio::io::{AsyncBufReadExt, BufReader};
+  let mut child = Command::new(&watcher_path)
+    .arg(std::process::id().to_string())
+    .stdout(std::process::Stdio::piped())
     .spawn()
-    .context("Failed to start watcher process.")
+    .context("Failed to start watcher process.")?;
+  let mut output = BufReader::new(child.stdout.take().context("Missing watcher output")?);
+  let mut line = String::new();
+  let ready = tokio::time::timeout(Duration::from_secs(5), output.read_line(&mut line)).await;
+  if !matches!(ready, Ok(Ok(_))) || line.trim() != "ready" {
+    let _ = child.kill().await;
+    anyhow::bail!("Window recovery watcher did not become ready; refusing to hide windows");
+  }
+  Ok(child)
 }
 
 /// Updates the current process' PATH by querying the login shell.

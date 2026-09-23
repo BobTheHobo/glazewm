@@ -808,7 +808,6 @@ impl WindowManager {
       .and_then(|_| platform_sync(&mut self.state, config))
     { tracing::warn!("Scratchpad shutdown cleanup failed: {error}"); }
 
-    self.state.emit_event(WmEvent::ApplicationExiting);
 
     // Ensure that the WM is unpaused, otherwise, shutdown commands won't
     // get executed.
@@ -822,6 +821,10 @@ impl WindowManager {
     ) {
       tracing::warn!("Failed to run shutdown commands: {:?}", err);
     }
+
+    // Restore before announcing exit, while platform services are still alive.
+    self.state.restore_windows();
+    self.state.emit_event(WmEvent::ApplicationExiting);
 
     // Emit remaining WM events before exiting.
     while let Ok(wm_event) = self.event_rx.try_recv() {

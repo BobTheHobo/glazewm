@@ -16,6 +16,13 @@ pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  #[cfg(target_os = "windows")]
+  if window.native().is_valid() {
+    if let Err(error) = wm_platform::release_window_recovery(&window.native(), false) {
+      tracing::warn!("Window release recovery failed: {error}");
+    }
+  }
+
   // Create iterator of parent, grandparent, and great-grandparent.
   let ancestors = window.ancestors().take(3).collect::<Vec<_>>();
 
