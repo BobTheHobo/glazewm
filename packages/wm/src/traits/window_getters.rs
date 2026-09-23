@@ -6,12 +6,39 @@ use wm_platform::{LengthValue, NativeWindow, Rect, RectDelta};
 
 use crate::{
   models::{NativeWindowProperties, Workspace},
-  traits::CommonGetters,
+  traits::{CommonGetters, PositionGetters},
   user_config::UserConfig,
 };
 
 #[delegatable_trait]
 pub trait WindowGetters: CommonGetters {
+  /// Ordinary windows participate; owned dialogs and pinned utility windows do not.
+  fn is_focus_mode_member(&self) -> bool {
+    match self.state() {
+      WindowState::Tiling => true,
+      WindowState::Floating(ref config) if !config.shown_on_top && self.native_properties().is_resizable => {
+        #[cfg(target_os = "windows")]
+        {
+          use wm_platform::NativeWindowWindowsExt;
+          !self.native().has_owner_window() && self.native_properties().class_name != "#32770"
+        }
+        #[cfg(not(target_os = "windows"))]
+        { false }
+      },
+      _ => false,
+    }
+  }
+
+  /// Presentation is separate from layout geometry so monocle never mutates splits.
+  fn presentation_rect(&self) -> anyhow::Result<Rect> {
+    if self.is_focus_mode_member() {
+      if let Some(workspace) = self.workspace().filter(|w| w.focus_mode()) {
+        return workspace.to_rect();
+      }
+    }
+    self.as_container().to_rect()
+  }
+
   fn state(&self) -> WindowState;
 
   fn set_state(&self, state: WindowState);

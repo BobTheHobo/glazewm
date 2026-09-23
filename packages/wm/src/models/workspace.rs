@@ -32,6 +32,7 @@ struct WorkspaceInner {
   config: WorkspaceConfig,
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
+  focus_mode: bool,
 }
 
 impl Workspace {
@@ -48,10 +49,15 @@ impl Workspace {
       config,
       gaps_config,
       tiling_direction,
+      focus_mode: false,
     };
 
     Self(Rc::new(RefCell::new(workspace)))
   }
+
+  pub fn focus_mode(&self) -> bool { self.0.borrow().focus_mode }
+
+  pub fn set_focus_mode(&self, enabled: bool) { self.0.borrow_mut().focus_mode = enabled; }
 
   /// Underlying config for the workspace.
   pub fn config(&self) -> WorkspaceConfig {
@@ -168,6 +174,7 @@ impl Workspace {
       child_focus_order: self.0.borrow().child_focus_order.clone().into(),
       has_focus: self.has_focus(None),
       is_displayed: self.is_displayed(),
+      focus_mode: self.focus_mode(),
       width: rect.width(),
       height: rect.height(),
       x: rect.x(),

@@ -228,6 +228,8 @@ pub enum InvokeCommand {
     #[clap(long, default_missing_value = "true", require_equals = true, num_args = 0..=1)]
     maximized: Option<bool>,
   },
+  /// Toggle workspace-local monocle presentation without changing its tiling tree.
+  ToggleFocusMode,
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,

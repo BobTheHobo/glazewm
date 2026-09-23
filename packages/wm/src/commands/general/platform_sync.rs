@@ -158,7 +158,8 @@ fn windows_to_bring_to_front(
             );
 
             is_floating_or_tiling
-              && window.state().is_same_state(&focused_descendant.state())
+              && (window.state().is_same_state(&focused_descendant.state())
+                || (workspace.focus_mode() && window.is_focus_mode_member()))
           })
           .collect(),
         None => vec![],
@@ -345,7 +346,7 @@ fn reposition_window(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let rect = window
-    .to_rect()?
+    .presentation_rect()?
     .apply_delta(&window.total_border_delta()?, None);
 
   // For `HideMethod::PlaceInCorner`, we need to reposition hidden windows
@@ -498,7 +499,11 @@ fn jump_cursor(
   };
 
   if let Some(jump_target) = jump_target {
-    let center = jump_target.to_rect()?.center_point();
+    let rect = match jump_target.as_window_container() {
+      Ok(window) => window.presentation_rect()?,
+      Err(_) => jump_target.to_rect()?,
+    };
+    let center = rect.center_point();
 
     if let Err(err) = state.dispatcher.set_cursor_position(&center) {
       tracing::warn!("Failed to set cursor position: {}", err);

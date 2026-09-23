@@ -114,7 +114,7 @@ impl NonTilingWindow {
   }
 
   pub fn to_dto(&self) -> anyhow::Result<ContainerDto> {
-    let rect = self.to_rect()?;
+    let rect = self.presentation_rect()?;
 
     Ok(ContainerDto::Window(WindowDto {
       id: self.id(),

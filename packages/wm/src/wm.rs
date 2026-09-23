@@ -702,6 +702,14 @@ impl WindowManager {
         }
         _ => Ok(()),
       },
+      InvokeCommand::ToggleFocusMode => {
+        let workspace = subject_container.workspace().context("No workspace.")?;
+        workspace.set_focus_mode(!workspace.focus_mode());
+        state.pending_sync.queue_container_to_redraw(workspace.clone());
+        state.pending_sync.queue_workspace_to_reorder(workspace.clone());
+        state.emit_event(WmEvent::WorkspaceUpdated { updated_workspace: workspace.to_dto()? });
+        Ok(())
+      },
       InvokeCommand::ToggleMinimized => {
         match subject_container.as_window_container() {
           Ok(window) => {

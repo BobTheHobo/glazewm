@@ -43,6 +43,17 @@ pub fn handle_window_moved_or_resized(
       properties.frame = frame_position.clone();
     });
 
+    // Dragging a monocle tile must not overwrite its saved split proportions.
+    if window.is_focus_mode_member()
+      && window.workspace().is_some_and(|w| w.focus_mode())
+      && !window.native().is_maximized().unwrap_or(false)
+      && !window.should_fullscreen(&window.workspace().context("No workspace")?)?
+    {
+      window.set_active_drag(None);
+      if is_interactive_end { state.pending_sync.queue_container_to_redraw(window); }
+      return Ok(());
+    }
+
     // Handle windows that are actively being dragged.
     if !state.is_paused && window.active_drag().is_some() {
       let is_drag_end = {
