@@ -693,7 +693,7 @@ impl WmState {
 
     }
     #[cfg(target_os = "windows")]
-    if let Err(error) = wm_platform::recover_windows(Some(std::process::id())) {
+    if let Err(error) = wm_platform::recover_windows(Some(wm_platform::RecoveryOwner::current())) {
       warn!("Window recovery sweep failed: {error}");
     }
   }
