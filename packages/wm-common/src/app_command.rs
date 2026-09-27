@@ -230,7 +230,11 @@ pub enum InvokeCommand {
   },
   /// Toggle workspace-local monocle presentation without changing its tiling tree.
   ToggleFocusMode,
-  ScratchpadAdd,
+  ScratchpadAdd {
+    /// Restore a deployment snapshot instead of capturing the current state.
+    #[clap(long)]
+    restore_state: Option<String>,
+  },
   ScratchpadToggle,
   ScratchpadRemove,
   ToggleMinimized,

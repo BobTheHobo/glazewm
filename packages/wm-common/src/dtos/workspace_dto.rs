@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::ContainerDto;
-use crate::TilingDirection;
+use crate::{TilingDirection, WindowState};
+use wm_platform::Rect;
 
 /// User-friendly representation of a workspace.
 ///
@@ -38,4 +39,16 @@ pub struct ScratchpadDto {
   pub hidden: bool,
   pub title: String,
   pub process_name: String,
+  #[serde(default)]
+  pub restore_state: Option<ScratchpadRestoreState>,
+}
+
+/// The release target and overlay presentation are deliberately independent.
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScratchpadRestoreState {
+  pub original_state: WindowState,
+  pub original_placement: Rect,
+  pub overlay_placement: Rect,
+  pub hidden: bool,
 }

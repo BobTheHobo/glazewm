@@ -705,8 +705,8 @@ impl WindowManager {
         }
         _ => Ok(()),
       },
-      InvokeCommand::ScratchpadAdd => match subject_container.as_window_container() {
-        Ok(window) => crate::commands::general::scratchpad_add(window, state, config),
+      InvokeCommand::ScratchpadAdd { restore_state } => match subject_container.as_window_container() {
+        Ok(window) => crate::commands::general::scratchpad_add(window, restore_state.as_deref(), state, config),
         Err(_) => crate::commands::general::scratchpad_hint(state),
       },
       InvokeCommand::ScratchpadToggle => crate::commands::general::scratchpad_toggle(state, config),
