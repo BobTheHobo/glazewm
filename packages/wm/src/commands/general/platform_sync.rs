@@ -269,6 +269,7 @@ fn redraw_containers(
 
     // Transition display state depending on whether window will be
     // shown or hidden.
+    let previous_display = window.display_state();
     window.set_display_state(
       match (window.display_state(), workspace.is_displayed()) {
         (DisplayState::Hidden | DisplayState::Hiding, true) => {
@@ -281,6 +282,7 @@ fn redraw_containers(
       },
     );
 
+    if previous_display != window.display_state() { crate::tracking_log::managed(window, "display-transition-request"); }
     let is_visible = matches!(
       window.display_state(),
       DisplayState::Showing | DisplayState::Shown

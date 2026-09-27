@@ -31,15 +31,18 @@ impl DisplayListener {
       move |_hwnd, message, wparam, _lparam| {
         match message {
           WM_POWERBROADCAST => {
+            tracing::info!(target: "window_tracking", code = wparam, "power-broadcast");
             #[allow(clippy::cast_possible_truncation)]
             match wparam as u32 {
               // System is resuming from sleep/hibernation.
               PBT_APMRESUMEAUTOMATIC | PBT_APMRESUMESUSPEND => {
                 is_system_suspended.store(false, Ordering::Relaxed);
+                crate::trace_tracking_inventory("resume-inventory");
               }
               // System is entering sleep/hibernation.
               PBT_APMSUSPEND => {
                 is_system_suspended.store(true, Ordering::Relaxed);
+                crate::trace_tracking_inventory("suspend-inventory");
               }
               _ => {}
             }
@@ -74,6 +77,7 @@ impl DisplayListener {
               }
             };
 
+            tracing::info!(target: "window_tracking", message, emitted = should_emit, "display-change");
             if should_emit {
               let _ = event_tx.send(());
             }

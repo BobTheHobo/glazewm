@@ -15,6 +15,7 @@ pub fn ignore_window(
   window: WindowContainer,
   state: &mut WmState,
 ) -> anyhow::Result<()> {
+  crate::tracking_log::managed(&window, "ignore-command");
   #[cfg(target_os = "windows")]
   if window.native().is_valid() {
     if let Err(error) = wm_platform::release_window_recovery(&window.native(), true) {

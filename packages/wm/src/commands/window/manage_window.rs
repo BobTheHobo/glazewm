@@ -23,10 +23,15 @@ pub fn manage_window(
   state: &mut WmState,
   config: &mut UserConfig,
 ) -> anyhow::Result<()> {
-  let Some(native_properties) =
-    check_is_manageable(&native_window).unwrap_or(None)
-  else {
-    return Ok(());
+  #[cfg(target_os = "windows")]
+  wm_platform::trace_window_tracking(&native_window, "manage-attempt");
+  let native_properties = match check_is_manageable(&native_window) {
+    Ok(Some(properties)) => properties,
+    Ok(None) => return Ok(()),
+    Err(error) => {
+      tracing::info!(target: "window_tracking", hwnd = ?native_window.id(), %error, "manage-query-failed");
+      return Ok(());
+    }
   };
 
   #[cfg(target_os = "windows")]
@@ -57,6 +62,7 @@ pub fn manage_window(
 
   if let Some(window) = updated_window {
     info!("New window managed: {window}");
+    crate::tracking_log::managed(&window, "manage-attached");
 
     state.emit_event(WmEvent::WindowManaged {
       managed_window: window.to_dto()?,
@@ -96,6 +102,7 @@ fn check_is_manageable(
   native_window: &NativeWindow,
 ) -> anyhow::Result<Option<NativeWindowProperties>> {
   if !native_window.is_visible()? {
+    tracing::info!(target: "window_tracking", hwnd = ?native_window.id(), "manage-rejected-not-visible");
     return Ok(None);
   }
 
@@ -135,6 +142,7 @@ fn check_is_manageable(
         || native_window
           .has_window_style_ex(WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW)
       {
+        tracing::info!(target: "window_tracking", hwnd = ?native_window.id(), "manage-rejected-style-or-owner");
         return Ok(None);
       }
 
@@ -146,6 +154,7 @@ fn check_is_manageable(
       if native_window.has_owner_window()
         && !native_window.has_window_style(WS_CAPTION)
       {
+        tracing::info!(target: "window_tracking", hwnd = ?native_window.id(), "manage-rejected-style-or-owner");
         return Ok(None);
       }
     }

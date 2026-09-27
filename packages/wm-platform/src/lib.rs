@@ -42,4 +42,8 @@ pub use windows::Win32::UI::WindowsAndMessaging::{
 #[cfg(target_os = "windows")]
 mod window_recovery;
 #[cfg(target_os = "windows")]
+mod window_tracking;
+#[cfg(target_os = "windows")]
+pub use window_tracking::*;
+#[cfg(target_os = "windows")]
 pub use window_recovery::*;

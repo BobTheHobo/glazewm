@@ -133,6 +133,7 @@ pub fn register_window_recovery(window: &NativeWindow) -> crate::Result<()> {
 fn restore(window: &NativeWindow, show: bool) -> crate::Result<()> {
   // Keep the ownership record if either visibility operation fails so the
   // watcher or next launch can retry. Cosmetic failures must not block recovery.
+  crate::trace_window_tracking(window, "recovery-before");
   let uncloaked = window.set_cloaked(false);
   let shown = if show {
     if window.is_minimized().unwrap_or(false) { window.restore(None) } else { window.show() }
@@ -143,6 +144,8 @@ fn restore(window: &NativeWindow, show: bool) -> crate::Result<()> {
   let topmost = unsafe { GetPropW(window.hwnd(), TOPMOST) }.0 == 2;
   let _ = unsafe { SetWindowPos(window.hwnd(), if topmost { HWND_TOPMOST } else { HWND_NOTOPMOST }, 0, 0, 0, 0,
     SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_ASYNCWINDOWPOS) };
+  crate::trace_window_tracking(window, "recovery-after");
+  tracing::info!(target: "window_tracking", hwnd = window.hwnd().0, show, uncloak_ok = uncloaked.is_ok(), show_ok = shown.is_ok(), taskbar_ok = taskbar.is_ok(), "recovery-result");
   uncloaked?;
   shown?;
   taskbar?;

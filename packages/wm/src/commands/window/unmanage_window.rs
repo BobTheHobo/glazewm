@@ -15,7 +15,9 @@ use crate::{
 pub fn unmanage_window(
   window: WindowContainer,
   state: &mut WmState,
+  reason: &'static str,
 ) -> anyhow::Result<()> {
+  crate::tracking_log::managed(&window, reason);
   #[cfg(target_os = "windows")]
   if window.native().is_valid() {
     if let Err(error) = wm_platform::release_window_recovery(&window.native(), false) {

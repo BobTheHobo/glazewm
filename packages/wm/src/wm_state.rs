@@ -671,7 +671,7 @@ impl WmState {
 
     for window in invalid_windows {
       tracing::info!("Removing invalid window: {}", window);
-      unmanage_window(window, self)?;
+      unmanage_window(window, self, "unmanage-invalid-handle")?;
     }
 
     Ok(())

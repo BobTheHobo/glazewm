@@ -127,6 +127,9 @@ impl WindowListener {
       return;
     };
 
+    if matches!(event_type, EVENT_OBJECT_HIDE | EVENT_OBJECT_SHOW | EVENT_OBJECT_CLOAKED | EVENT_OBJECT_UNCLOAKED | EVENT_OBJECT_DESTROY | EVENT_SYSTEM_MINIMIZESTART | EVENT_SYSTEM_MINIMIZEEND) {
+      crate::trace_tracking_handle(handle.0, "win-event", event_type, _event_time);
+    }
     let notification = crate::WindowEventNotification(None);
 
     let event = match event_type {

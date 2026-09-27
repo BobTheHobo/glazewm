@@ -777,7 +777,13 @@ pub(crate) fn visible_windows(
     handles
       .into_iter()
       .map(NativeWindow::new)
-      .filter(|window| window.is_visible().unwrap_or(false))
+      .filter(|window| {
+        let visible = window.is_visible().unwrap_or(false);
+        if !visible {
+          crate::trace_tracking_handle(window.hwnd().0, "enumeration-not-visible", 0, 0);
+        }
+        visible
+      })
       .map(Into::into)
       .collect(),
   )

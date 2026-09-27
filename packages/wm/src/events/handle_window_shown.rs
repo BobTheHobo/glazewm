@@ -16,6 +16,7 @@ pub fn handle_window_shown(
 
   if let Some(window) = found_window {
     info!("Window shown: {window}");
+    crate::tracking_log::managed(&window, "shown-event");
 
     // Update display state if window is already managed.
     if config.value.general.hide_method != HideMethod::PlaceInCorner

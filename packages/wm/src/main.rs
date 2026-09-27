@@ -19,6 +19,7 @@ use tracing::Level;
 use tracing_subscriber::{
   fmt::{self, writer::MakeWriterExt},
   layer::SubscriberExt,
+  Layer,
 };
 use wm_common::{AppCommand, InvokeCommand, Verbosity, WmEvent};
 #[cfg(target_os = "macos")]
@@ -34,6 +35,7 @@ use crate::{
   wm::WindowManager,
 };
 
+mod tracking_log;
 mod commands;
 mod events;
 mod ipc_server;
@@ -102,10 +104,9 @@ async fn start_wm(
   verbosity: Verbosity,
   dispatcher: &Dispatcher,
 ) -> anyhow::Result<()> {
-  setup_logging(&verbosity)?;
-
-  // Ensure that only one instance of the WM is running.
+  // Hold the single-instance lock until the asynchronous log writer is flushed.
   let _single_instance = SingleInstance::new()?;
+  let (_tracking_guard, tracking_drops) = setup_logging(&verbosity)?;
 
   #[cfg(target_os = "macos")]
   {
@@ -132,6 +133,8 @@ async fn start_wm(
   }
 
   let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
+  #[cfg(target_os = "windows")]
+  wm_platform::trace_tracking_inventory("startup-inventory");
 
   let mut ipc_server = IpcServer::start().await?;
 
@@ -283,8 +286,10 @@ async fn start_wm(
     }
   }
 
+  tracing::info!(target: "window_tracking", "session-cleanup-start");
   tracing::info!("Window manager shutting down.");
   wm.cleanup(&mut config, &mut ipc_server);
+  tracing::info!(target: "window_tracking", dropped_lines = tracking_drops.dropped_lines(), "session-stop");
 
   Ok(())
 }
@@ -292,19 +297,26 @@ async fn start_wm(
 /// Initialize logging with the specified verbosity level.
 ///
 /// Error logs are saved to `~/.glzr/glazewm/errors.log`.
-fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
+fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<(tracing_appender::non_blocking::WorkerGuard, tracing_appender::non_blocking::ErrorCounter)> {
   let error_log_dir = home::home_dir()
     .context("Unable to get home directory.")?
     .join(".glzr/glazewm/");
 
   let error_writer =
-    tracing_appender::rolling::never(error_log_dir, "errors.log");
+    tracing_appender::rolling::never(&error_log_dir, "errors.log");
+  let writer = tracking_log::RotatingWriter::new(error_log_dir.join("window-tracking.log"), 2 * 1024 * 1024)?;
+  let (writer, guard) = tracing_appender::non_blocking::NonBlockingBuilder::default()
+    .buffered_lines_limit(2048).lossy(true).finish(writer);
+  let drops = writer.error_counter();
 
   let subscriber = tracing_subscriber::registry()
+    .with(fmt::Layer::new().with_ansi(false).with_writer(writer)
+      .with_filter(tracing_subscriber::filter::filter_fn(|m| m.target() == "window_tracking")))
     .with(
       // Output to stdout with specified verbosity level.
       fmt::Layer::new()
-        .with_writer(std::io::stdout.with_max_level(verbosity.level())),
+        .with_writer(std::io::stdout.with_max_level(verbosity.level()))
+        .with_filter(tracing_subscriber::filter::filter_fn(|m| m.target() != "window_tracking")),
     )
     .with(
       // Output to error log file.
@@ -313,13 +325,14 @@ fn setup_logging(verbosity: &Verbosity) -> anyhow::Result<()> {
     );
 
   tracing::subscriber::set_global_default(subscriber)?;
+  tracing::info!(target: "window_tracking", pid = std::process::id(), version = env!("VERSION_NUMBER"), "session-start");
 
   tracing::info!(
     "Starting WM with log level {:?}.",
     verbosity.level().to_string()
   );
 
-  Ok(())
+  Ok((guard, drops))
 }
 
 /// Launches watcher binary (Windows-only). This is a separate process that
