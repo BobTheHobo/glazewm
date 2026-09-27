@@ -233,6 +233,10 @@ impl WindowManager {
       bail!("Cannot run command because subject container is detached.");
     }
 
+    if subject_container.workspace().is_some_and(|ws| ws.is_saved())
+      && !matches!(command, InvokeCommand::WorkspaceRestore { .. }) {
+      bail!("Restore the saved workspace before interacting with its windows.");
+    }
     match &command {
       InvokeCommand::AdjustBorders(args) => {
         match subject_container.as_window_container() {
@@ -711,6 +715,19 @@ impl WindowManager {
       },
       InvokeCommand::ScratchpadToggle => crate::commands::general::scratchpad_toggle(state, config),
       InvokeCommand::ScratchpadRemove => crate::commands::general::scratchpad_remove(state, config),
+      InvokeCommand::WorkspaceSave => crate::commands::workspace::save_workspace(
+        &subject_container.workspace().context("No workspace")?, state, config),
+      InvokeCommand::WorkspaceUseConfigName => {
+        let workspace = subject_container.workspace().context("No workspace")?;
+        let mut current = workspace.config();
+        current.display_name = config.value.workspaces.iter().find(|w| w.name == current.name)
+          .context("Workspace is not configured")?.display_name.clone();
+        workspace.set_config(current);
+        state.emit_event(WmEvent::WorkspaceUpdated { updated_workspace: workspace.to_dto()? });
+        Ok(())
+      },
+      InvokeCommand::WorkspaceRestore { workspace } => crate::commands::workspace::restore_workspace(
+        subject_container.as_workspace().context("Select a saved workspace")?, workspace, state, config),
       InvokeCommand::ToggleFocusMode => {
         let workspace = subject_container.workspace().context("No workspace.")?;
         workspace.set_focus_mode(!workspace.focus_mode());

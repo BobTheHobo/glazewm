@@ -33,6 +33,7 @@ struct WorkspaceInner {
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
   focus_mode: bool,
+  saved_workspace: Option<wm_common::SavedWorkspaceDto>,
   scratchpad: Option<wm_common::ScratchpadDto>,
   scratchpad_hint_at: u64,
 }
@@ -52,6 +53,7 @@ impl Workspace {
       gaps_config,
       tiling_direction,
       focus_mode: false,
+      saved_workspace: None,
       scratchpad: None,
       scratchpad_hint_at: 0,
     };
@@ -63,6 +65,27 @@ impl Workspace {
 
   pub fn scratchpad(&self) -> Option<wm_common::ScratchpadDto> { self.0.borrow().scratchpad.clone() }
   pub fn set_scratchpad(&self, value: Option<wm_common::ScratchpadDto>) { self.0.borrow_mut().scratchpad = value; }
+
+  pub fn saved_workspace(&self) -> Option<wm_common::SavedWorkspaceDto> { self.0.borrow().saved_workspace.clone() }
+  pub fn set_saved_workspace(&self, saved: Option<wm_common::SavedWorkspaceDto>) { self.0.borrow_mut().saved_workspace = saved; }
+  pub fn is_saved(&self) -> bool { self.0.borrow().saved_workspace.is_some() }
+
+  /// Swap intact layout trees. Per-window moves would flatten splits and reset sizes.
+  pub fn swap_contents(&self, other: &Self) {
+    assert!(self.id() != other.id());
+    {
+      let mut a = self.0.borrow_mut();
+      let mut b = other.0.borrow_mut();
+      std::mem::swap(&mut a.children, &mut b.children);
+      std::mem::swap(&mut a.child_focus_order, &mut b.child_focus_order);
+      std::mem::swap(&mut a.tiling_direction, &mut b.tiling_direction);
+      std::mem::swap(&mut a.focus_mode, &mut b.focus_mode);
+      std::mem::swap(&mut a.config.display_name, &mut b.config.display_name);
+    }
+    for ws in [self, other] {
+      for child in ws.children() { *child.borrow_parent_mut() = Some(ws.clone().into()); }
+    }
+  }
 
   pub fn focus_mode(&self) -> bool { self.0.borrow().focus_mode }
 
@@ -80,6 +103,7 @@ impl Workspace {
 
   /// Whether the workspace is currently displayed by the parent monitor.
   pub fn is_displayed(&self) -> bool {
+    if self.is_saved() { return false; }
     self
       .monitor()
       .and_then(|monitor| monitor.displayed_workspace())
@@ -184,6 +208,7 @@ impl Workspace {
       has_focus: self.has_focus(None),
       is_displayed: self.is_displayed(),
       focus_mode: self.focus_mode(),
+      saved_workspace: self.saved_workspace(),
       scratchpad: self.scratchpad(),
       scratchpad_hint_at: self.0.borrow().scratchpad_hint_at,
       width: rect.width(),

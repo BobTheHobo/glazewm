@@ -12,6 +12,8 @@ pub fn focus_container_by_id(
     .container_by_id(*container_id)
     .context("No container with given id")?;
 
+  use crate::traits::CommonGetters;
+  anyhow::ensure!(!focus_target.workspace().is_some_and(|ws| ws.is_saved()), "Restore this workspace first.");
   // Set focus to the target container.
   set_focused_descendant(&focus_target, None);
   state.pending_sync.queue_focus_change().queue_cursor_jump();

@@ -180,7 +180,7 @@ impl WmState {
 
   /// Gets workspaces sorted by their position in the user config.
   pub fn sorted_workspaces(&self, config: &UserConfig) -> Vec<Workspace> {
-    let mut workspaces = self.workspaces();
+    let mut workspaces: Vec<_> = self.workspaces().into_iter().filter(|ws| !ws.is_saved()).collect();
     config.sort_workspaces(&mut workspaces);
     workspaces
   }
@@ -421,7 +421,7 @@ impl WmState {
           .monitor()
           .context("No monitor in workspace")?;
 
-        let mut workspace_in_monitor = monitor.workspaces();
+        let mut workspace_in_monitor: Vec<_> = monitor.workspaces().into_iter().filter(|ws| !ws.is_saved()).collect();
         config.sort_workspaces(&mut workspace_in_monitor);
 
         let origin_index = workspace_in_monitor
@@ -444,7 +444,7 @@ impl WmState {
           .monitor()
           .context("No monitor in workspace")?;
 
-        let mut workspace_in_monitor = monitor.workspaces();
+        let mut workspace_in_monitor: Vec<_> = monitor.workspaces().into_iter().filter(|ws| !ws.is_saved()).collect();
         config.sort_workspaces(&mut workspace_in_monitor);
 
         let origin_index = workspace_in_monitor
@@ -524,6 +524,7 @@ impl WmState {
       }
     };
 
+    anyhow::ensure!(!workspace.as_ref().is_some_and(|ws| ws.is_saved()), "Restore this workspace first.");
     Ok((name, workspace))
   }
 

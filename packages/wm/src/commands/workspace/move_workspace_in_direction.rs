@@ -54,7 +54,7 @@ pub fn move_workspace_in_direction(
       .queue_container_to_redraw(workspace.clone())
       .queue_container_to_redraw(displayed_workspace);
 
-    match origin_monitor.child_count() {
+    match origin_monitor.workspaces().iter().filter(|ws| !ws.is_saved()).count() {
       0 => {
         // Prevent origin monitor from having no workspaces.
         activate_workspace(None, Some(origin_monitor), state, config)?;

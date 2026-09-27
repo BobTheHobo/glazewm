@@ -58,6 +58,10 @@ pub fn handle_window_focused(
 
   if let Some(window) = found_window {
     let workspace = window.workspace().context("No workspace")?;
+    if workspace.is_saved() {
+      state.pending_sync.queue_focus_change().queue_container_to_redraw(workspace);
+      return Ok(());
+    }
 
     // Native focus has been synced to the WM's focused container.
     if focused_container == window.clone().into() {

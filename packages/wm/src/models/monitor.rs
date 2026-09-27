@@ -69,8 +69,8 @@ impl Monitor {
   pub fn displayed_workspace(&self) -> Option<Workspace> {
     self
       .child_focus_order()
-      .next()
-      .and_then(|child| child.as_workspace().cloned())
+      .filter_map(|child| child.as_workspace().cloned())
+      .find(|ws| !ws.is_saved())
   }
 
   pub fn workspaces(&self) -> Vec<Workspace> {

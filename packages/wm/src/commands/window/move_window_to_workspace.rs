@@ -20,6 +20,7 @@ pub fn move_window_to_workspace(
   config: &UserConfig,
 ) -> anyhow::Result<()> {
   let current_workspace = window.workspace().context("No workspace.")?;
+  anyhow::ensure!(!current_workspace.is_saved(), "Restore this workspace first.");
   let current_monitor =
     current_workspace.monitor().context("No monitor.")?;
 

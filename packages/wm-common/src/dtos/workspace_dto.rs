@@ -22,6 +22,8 @@ pub struct WorkspaceDto {
   #[serde(default)]
   pub focus_mode: bool,
   #[serde(default)]
+  pub saved_workspace: Option<SavedWorkspaceDto>,
+  #[serde(default)]
   pub scratchpad: Option<ScratchpadDto>,
   #[serde(default)]
   pub scratchpad_hint_at: u64,
@@ -51,4 +53,11 @@ pub struct ScratchpadRestoreState {
   pub original_placement: Rect,
   pub overlay_placement: Rect,
   pub hidden: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedWorkspaceDto {
+  pub original_name: String,
+  pub saved_at: u64,
 }

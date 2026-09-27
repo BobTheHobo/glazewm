@@ -1,8 +1,8 @@
 use anyhow::Context;
 use tracing::{info, warn};
 #[cfg(target_os = "windows")]
-use wm_common::{HideMethod, ParsedConfig};
-use wm_common::{WindowRuleEvent, WmEvent};
+use wm_common::HideMethod;
+use wm_common::{ParsedConfig, WindowRuleEvent, WmEvent};
 #[cfg(target_os = "windows")]
 use wm_platform::NativeWindowWindowsExt;
 
@@ -21,7 +21,6 @@ pub fn reload_config(
   info!("Config reloaded.");
 
   // Keep reference to old config for comparison.
-  #[cfg(target_os = "windows")]
   let old_config = config.value.clone();
 
   // Re-evaluate user config file and set its values in state.
@@ -29,11 +28,12 @@ pub fn reload_config(
 
   // Re-run window rules on all active windows.
   for window in state.windows() {
+    if window.workspace().is_some_and(|ws| ws.is_saved()) { continue; }
     window.set_done_window_rules(Vec::new());
     run_window_rules(window, &WindowRuleEvent::Manage, state, config)?;
   }
 
-  update_workspace_configs(state, config)?;
+  update_workspace_configs(state, config, &old_config)?;
 
   update_container_gaps(state, config);
 
@@ -96,10 +96,12 @@ pub fn reload_config(
 fn update_workspace_configs(
   state: &mut WmState,
   config: &UserConfig,
+  old_config: &ParsedConfig,
 ) -> anyhow::Result<()> {
   let workspaces = state.workspaces();
 
   for workspace in &workspaces {
+    if workspace.is_saved() { continue; }
     let monitor = workspace.monitor().context("No monitor.")?;
 
     let workspace_config = config
@@ -124,7 +126,13 @@ fn update_workspace_configs(
       }
       Some(workspace_config) => {
         if *workspace_config != workspace.config() {
-          workspace.set_config(workspace_config.clone());
+          let mut updated = workspace_config.clone();
+          // Keep session labels after swaps, unless the user explicitly renamed in YAML.
+          if old_config.workspaces.iter().find(|w| w.name == updated.name)
+            .is_some_and(|old| old.display_name == updated.display_name) {
+            updated.display_name = workspace.config().display_name;
+          }
+          workspace.set_config(updated);
 
           sort_workspaces(&monitor, config)?;
 

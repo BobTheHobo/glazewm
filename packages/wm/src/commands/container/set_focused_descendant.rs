@@ -8,6 +8,7 @@ pub fn set_focused_descendant(
   focused_descendant: &Container,
   end_ancestor: Option<&Container>,
 ) {
+  if focused_descendant.workspace().is_some_and(|ws| ws.is_saved()) { return; }
   let mut target = focused_descendant.clone();
 
   // Traverse upwards, shifting the container's ancestors to the front in

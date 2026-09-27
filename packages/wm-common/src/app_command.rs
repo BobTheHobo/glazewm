@@ -230,6 +230,15 @@ pub enum InvokeCommand {
   },
   /// Toggle workspace-local monocle presentation without changing its tiling tree.
   ToggleFocusMode,
+  /// Park the subject workspace intact and leave its numbered slot empty.
+  WorkspaceSave,
+  /// Apply the configured display name to a session-swapped workspace.
+  WorkspaceUseConfigName,
+  /// Restore a saved workspace, caching an occupied destination atomically.
+  WorkspaceRestore {
+    #[clap(long)]
+    workspace: String,
+  },
   ScratchpadAdd {
     /// Restore a deployment snapshot instead of capturing the current state.
     #[clap(long)]
