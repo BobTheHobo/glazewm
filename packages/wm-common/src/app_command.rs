@@ -130,6 +130,9 @@ pub enum QueryCommand {
   Workspaces,
   /// Outputs whether the window manager is paused.
   Paused,
+  /// Outputs window-recovery health: watcher status, windows carrying a
+  /// recovery record that are not managed, and recent recovery attempts.
+  Recovery,
 }
 
 #[derive(Clone, Debug, PartialEq, ValueEnum)]
@@ -246,6 +249,9 @@ pub enum InvokeCommand {
   },
   ScratchpadToggle,
   ScratchpadRemove,
+  /// Restore windows that carry a GlazeWM recovery record but are no longer
+  /// managed. Never closes windows or touches windows without a record.
+  RecoverUntrackedWindows,
   ToggleMinimized,
   ToggleTiling,
   ToggleTilingDirection,

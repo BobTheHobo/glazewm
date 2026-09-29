@@ -239,6 +239,9 @@ impl IpcServer {
             tiling_direction: direction_container.tiling_direction(),
           })
         }
+        QueryCommand::Recovery => ClientResponseData::Recovery(
+          crate::commands::general::recovery_status(&wm.state)?,
+        ),
         QueryCommand::Paused => {
           ClientResponseData::Paused(wm.state.is_paused)
         }

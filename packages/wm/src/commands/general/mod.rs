@@ -16,3 +16,6 @@ pub use toggle_pause::*;
 
 mod scratchpad;
 pub use scratchpad::*;
+
+mod window_recovery;
+pub use window_recovery::*;

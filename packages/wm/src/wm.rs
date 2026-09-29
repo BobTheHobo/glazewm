@@ -715,6 +715,7 @@ impl WindowManager {
       },
       InvokeCommand::ScratchpadToggle => crate::commands::general::scratchpad_toggle(state, config),
       InvokeCommand::ScratchpadRemove => crate::commands::general::scratchpad_remove(state, config),
+      InvokeCommand::RecoverUntrackedWindows => crate::commands::general::recover_untracked_windows(state),
       InvokeCommand::WorkspaceSave => crate::commands::workspace::save_workspace(
         &subject_container.workspace().context("No workspace")?, state, config),
       InvokeCommand::WorkspaceUseConfigName => {

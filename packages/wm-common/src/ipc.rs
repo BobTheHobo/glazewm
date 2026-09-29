@@ -24,6 +24,9 @@ pub struct ClientResponseMessage {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ClientResponseData {
+  // First, and keyed by its required `recoveryWatcher` field, so untagged
+  // decoding cannot confuse it with another response.
+  Recovery(RecoveryData),
   AppMetadata(AppMetadataData),
   BindingModes(BindingModesData),
   Command(CommandData),
@@ -90,6 +93,49 @@ pub struct WindowsData {
 #[serde(rename_all = "camelCase")]
 pub struct WorkspacesData {
   pub workspaces: Vec<ContainerDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryData {
+  pub recovery_watcher: RecoveryWatcherDto,
+  /// Windows carrying a recovery record that are not managed by this session.
+  pub unmanaged_records: Vec<RecoveryRecordDto>,
+  /// How many managed windows carry a record (the normal case).
+  pub managed_record_count: usize,
+  /// Recent recovery attempts in this manager session, oldest first.
+  pub recovery_events: Vec<RecoveryEventDto>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryWatcherDto {
+  /// None when no watcher was recorded (e.g. a non-Windows build).
+  pub pid: Option<u32>,
+  pub running: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryRecordDto {
+  pub handle: isize,
+  pub process_name: Option<String>,
+  /// "untracked", "orphaned" or "otherSession".
+  pub status: String,
+  pub owner_pid: u32,
+  pub visible: bool,
+  pub minimized: bool,
+  pub cloak: Option<u32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryEventDto {
+  pub unix_ms: u64,
+  pub handle: isize,
+  pub process_name: Option<String>,
+  pub reason: String,
+  pub error: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

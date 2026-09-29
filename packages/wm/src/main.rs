@@ -129,7 +129,9 @@ async fn start_wm(
   {
     wm_platform::recover_windows(None).context("Recovering orphaned windows")?;
     // Fail startup before hiding windows if crash recovery cannot be launched.
-    start_watcher_process().await?;
+    let watcher = start_watcher_process().await?;
+    // Remembered by PID and start time for `query recovery`.
+    if let Some(pid) = watcher.id() { wm_platform::set_recovery_watcher(pid); }
   }
 
   let mut wm = WindowManager::new(&mut config, dispatcher.clone())?;
