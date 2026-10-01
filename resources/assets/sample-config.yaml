@@ -156,6 +156,7 @@ window_rules:
         window_class: { not_regex: 'OpusApp' }
       - window_process: { equals: 'POWERPNT' }
         window_class: { not_regex: 'PPTFrameClass' }
+      - window_process: { equals: 'CleanShot X' }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
@@ -169,9 +170,9 @@ binding_modes:
         bindings: ['k', 'up']
       - commands: ['resize --height -2%']
         bindings: ['j', 'down']
-      # Press enter/escape to return to default keybindings.
+      # Press escape/enter/alt+r to return to default keybindings.
       - commands: ['wm-disable-binding-mode --name resize']
-        bindings: ['escape', 'enter']
+        bindings: ['escape', 'enter', 'alt+r']
 
 keybindings:
   # Shift focus in a given direction.

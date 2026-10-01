@@ -675,6 +675,9 @@ impl WmState {
       unmanage_window(window, self, "unmanage-invalid-handle")?;
     }
 
+    // Prune ignored windows that are no longer valid.
+    self.ignored_windows.retain(NativeWindow::is_valid);
+
     Ok(())
   }
 }
