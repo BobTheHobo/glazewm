@@ -284,7 +284,7 @@ impl WindowManager {
         }
 
         if let Some(container_id) = &args.container_id {
-          focus_container_by_id(container_id, state)?;
+          focus_container_by_id(container_id, state, config)?;
         }
 
         if let Some(name) = &args.workspace {

@@ -67,7 +67,7 @@ pub fn scratchpad_toggle(state: &mut WmState, config: &UserConfig) -> anyhow::Re
     let workspace = state.focused_container().and_then(|c| c.workspace()).context("No focused workspace")?;
     move_window_to_workspace(window.clone(), WorkspaceTarget::Name(workspace.config().name), state, config)?;
     let window = update_window_state(window, floating(), state, config)?;
-    focus_container_by_id(&window.id(), state)?;
+    focus_container_by_id(&window.id(), state, config)?;
   }
   Ok(())
 }
