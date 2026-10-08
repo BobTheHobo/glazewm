@@ -120,6 +120,20 @@ mod tests {
     assert!(a.focus_mode());
   }
   #[test]
+  fn tiling_changes_drop_the_lone_window_shrink() {
+    let a = workspace("3"); let b = workspace("saved");
+    a.set_lone_size(Some((800, 600)));
+    a.swap_contents(&b);
+    assert_eq!(b.lone_size(), Some((800, 600))); assert_eq!(a.lone_size(), None);
+    let split = SplitContainer::new(TilingDirection::Vertical, GapsConfig::default());
+    attach_container(&split.clone().into(), &b.clone().into(), None).unwrap();
+    assert_eq!(b.lone_size(), None);
+    assert!(b.lone_tiling_window().is_none(), "a split is not a lone window");
+    b.set_lone_size(Some((800, 600)));
+    crate::commands::container::detach_container(split.into()).unwrap();
+    assert_eq!(b.lone_size(), None);
+  }
+  #[test]
   fn saved_subtrees_are_not_focus_targets() {
     let saved = workspace("saved");
     let split = SplitContainer::new(TilingDirection::Vertical, GapsConfig::default());

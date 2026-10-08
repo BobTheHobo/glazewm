@@ -15,7 +15,8 @@ use crate::{
   impl_common_getters, impl_container_debug,
   impl_tiling_direction_getters,
   models::{
-    Container, DirectionContainer, TilingContainer, WindowContainer,
+    Container, DirectionContainer, TilingContainer, TilingWindow,
+    WindowContainer,
   },
   traits::{CommonGetters, PositionGetters, TilingDirectionGetters},
 };
@@ -33,6 +34,9 @@ struct WorkspaceInner {
   gaps_config: GapsConfig,
   tiling_direction: TilingDirection,
   focus_mode: bool,
+  /// Shrunk size of a tiling window that has this workspace to itself
+  /// (resize mode), shown centred. Dropped when a tiling window joins or leaves.
+  lone_size: Option<(i32, i32)>,
   saved_workspace: Option<wm_common::SavedWorkspaceDto>,
   scratchpad: Option<wm_common::ScratchpadDto>,
   scratchpad_hint_at: u64,
@@ -53,6 +57,7 @@ impl Workspace {
       gaps_config,
       tiling_direction,
       focus_mode: false,
+      lone_size: None,
       saved_workspace: None,
       scratchpad: None,
       scratchpad_hint_at: 0,
@@ -80,6 +85,7 @@ impl Workspace {
       std::mem::swap(&mut a.child_focus_order, &mut b.child_focus_order);
       std::mem::swap(&mut a.tiling_direction, &mut b.tiling_direction);
       std::mem::swap(&mut a.focus_mode, &mut b.focus_mode);
+      std::mem::swap(&mut a.lone_size, &mut b.lone_size);
       std::mem::swap(&mut a.config.display_name, &mut b.config.display_name);
     }
     for ws in [self, other] {
@@ -90,6 +96,19 @@ impl Workspace {
   pub fn focus_mode(&self) -> bool { self.0.borrow().focus_mode }
 
   pub fn set_focus_mode(&self, enabled: bool) { self.0.borrow_mut().focus_mode = enabled; }
+
+  pub fn lone_size(&self) -> Option<(i32, i32)> { self.0.borrow().lone_size }
+
+  pub fn set_lone_size(&self, size: Option<(i32, i32)>) { self.0.borrow_mut().lone_size = size; }
+
+  /// The tiling window that has this workspace to itself, if any.
+  pub fn lone_tiling_window(&self) -> Option<TilingWindow> {
+    let mut tiling = self.tiling_children();
+    match (tiling.next(), tiling.next()) {
+      (Some(TilingContainer::TilingWindow(window)), None) => Some(window),
+      _ => None,
+    }
+  }
 
   /// Underlying config for the workspace.
   pub fn config(&self) -> WorkspaceConfig {

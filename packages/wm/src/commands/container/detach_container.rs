@@ -12,6 +12,13 @@ use crate::{
 /// fill the freed up space. Will flatten empty parent split containers.
 #[allow(clippy::needless_pass_by_value)]
 pub fn detach_container(child_to_remove: Container) -> anyhow::Result<()> {
+  // A tiling container leaving ends any lone-window shrink there.
+  if child_to_remove.as_tiling_container().is_ok() {
+    if let Some(workspace) = child_to_remove.workspace() {
+      workspace.set_lone_size(None);
+    }
+  }
+
   // Flatten the parent split container if it'll be empty after removing
   // the child.
   if let Some(split_parent) = child_to_remove

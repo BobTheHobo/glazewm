@@ -4,7 +4,7 @@ use wm_common::{FloatingStateConfig, ScratchpadDto, ScratchpadRestoreState, Wind
 use wm_platform::Rect;
 use crate::{
   commands::{container::focus_container_by_id, window::{move_window_to_workspace, update_window_state}},
-  models::{WindowContainer, WorkspaceTarget},
+  models::{InsertionTarget, WindowContainer, WorkspaceTarget},
   traits::{CommonGetters, PositionGetters, WindowGetters},
   user_config::UserConfig, wm_state::WmState,
 };
@@ -14,6 +14,9 @@ pub struct Scratchpad {
   pub id: Uuid,
   original_state: WindowState,
   original_placement: Rect,
+  // Where a tiled window came from. Following focus to another workspace
+  // clears the window's own copy, so keep one to put it back on release.
+  insertion_target: Option<InsertionTarget>,
 }
 
 fn tracked(state: &WmState) -> Option<WindowContainer> {
@@ -31,9 +34,11 @@ pub fn scratchpad_add(window: WindowContainer, restore_json: Option<&str>, state
   let id = window.id();
   scratchpad_remove(state, config)?;
   let window = state.container_by_id(id).context("Scratchpad window disappeared")?.as_window_container()?;
-  let record = Scratchpad { id, original_state: restore.as_ref().map_or_else(|| window.state(), |r| r.original_state.clone()),
-    original_placement: restore.as_ref().map_or_else(|| window.floating_placement(), |r| r.original_placement.clone()) };
+  let mut record = Scratchpad { id, original_state: restore.as_ref().map_or_else(|| window.state(), |r| r.original_state.clone()),
+    original_placement: restore.as_ref().map_or_else(|| window.floating_placement(), |r| r.original_placement.clone()),
+    insertion_target: None };
   let window = update_window_state(window, floating(), state, config)?;
+  record.insertion_target = window.as_non_tiling_window().and_then(|w| w.insertion_target());
   let area = window.workspace().context("No workspace")?.to_rect()?;
   window.set_floating_placement(restore.as_ref().map_or_else(
     || Rect::from_xy(0, 0, 900.min(area.width()), 600.min(area.height())).translate_to_center(&area),
@@ -51,6 +56,13 @@ pub fn scratchpad_remove(state: &mut WmState, config: &UserConfig) -> anyhow::Re
   if let Some(record) = state.scratchpad.take() {
     if let Some(window) = window {
       window.set_floating_placement(record.original_placement);
+      // Back in its old spot when released on the workspace it came from.
+      if let (Some(non_tiling), Some(target)) = (window.as_non_tiling_window(), record.insertion_target) {
+        let home = target.target_parent.workspace().map(|w| w.id());
+        if home.is_some() && home == window.workspace().map(|w| w.id()) {
+          non_tiling.set_insertion_target(Some(target));
+        }
+      }
       let original = if record.original_state == WindowState::Minimized { WindowState::Tiling } else { record.original_state };
       let window = update_window_state(window, original, state, config)?;
       state.pending_sync.queue_container_to_redraw(window).queue_all_effects_update();

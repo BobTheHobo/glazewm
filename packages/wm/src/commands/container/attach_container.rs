@@ -36,6 +36,13 @@ pub fn attach_container(
 
   *child.borrow_parent_mut() = Some(target_parent.clone());
 
+  // A tiling container joining ends any lone-window shrink there.
+  if child.as_tiling_container().is_ok() {
+    if let Some(workspace) = target_parent.workspace() {
+      workspace.set_lone_size(None);
+    }
+  }
+
   // Resize the child and its siblings if it is a tiling container.
   if let Ok(child) = child.as_tiling_container() {
     let tiling_siblings = child.tiling_siblings().collect::<Vec<_>>();

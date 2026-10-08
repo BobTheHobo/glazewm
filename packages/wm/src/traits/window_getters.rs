@@ -10,6 +10,19 @@ use crate::{
   user_config::UserConfig,
 };
 
+/// A rect of the given size (capped to `outer`), centred in `outer`.
+#[must_use]
+pub fn centered_in(outer: &Rect, (width, height): (i32, i32)) -> Rect {
+  let width = width.min(outer.width());
+  let height = height.min(outer.height());
+  Rect::from_xy(
+    outer.x() + (outer.width() - width) / 2,
+    outer.y() + (outer.height() - height) / 2,
+    width,
+    height,
+  )
+}
+
 #[delegatable_trait]
 pub trait WindowGetters: CommonGetters {
   /// Ordinary windows participate; owned dialogs and pinned utility windows do not.
@@ -36,7 +49,17 @@ pub trait WindowGetters: CommonGetters {
         return workspace.to_rect();
       }
     }
-    self.as_container().to_rect()
+    let rect = self.as_container().to_rect()?;
+    // A tiling window alone on its workspace may be shrunk (resize mode).
+    if matches!(self.state(), WindowState::Tiling) {
+      if let Some(workspace) = self.workspace() {
+        let is_lone = workspace.lone_tiling_window().is_some_and(|w| w.id() == self.id());
+        if let Some(size) = workspace.lone_size().filter(|_| is_lone) {
+          return Ok(centered_in(&rect, size));
+        }
+      }
+    }
+    Ok(rect)
   }
 
   fn state(&self) -> WindowState;
