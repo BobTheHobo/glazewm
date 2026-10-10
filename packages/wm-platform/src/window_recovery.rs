@@ -169,11 +169,19 @@ pub fn release_window_recovery(window: &NativeWindow, show: bool) -> crate::Resu
   let _lock = RecoveryLock::acquire()?;
   if record_of(window.hwnd()).is_some_and(|record| RecoveryOwner::current().matches(record)) {
     let result = restore(window, show);
+    // A window destroyed while it is being released has nothing left to
+    // recover (its properties went with it); that isn't a recovery failure.
+    let result = if release_failure_is_real(result.is_err(), window.is_valid()) { result } else { Ok(()) };
     // Releases are routine; only failures belong in the diagnostics history.
     if result.is_err() { note_recovery(window, "release", &result); }
     result?;
   }
   Ok(())
+}
+
+/// A failed release matters only while the window still exists.
+fn release_failure_is_real(failed: bool, window_still_valid: bool) -> bool {
+  failed && window_still_valid
 }
 
 /// How a window's recovery record relates to the current manager session.
@@ -402,6 +410,14 @@ mod tests {
 
   fn identity(child: &std::process::Child) -> RecoveryOwner {
     RecoveryOwner { pid: child.id(), started: process_start(HANDLE(child.as_raw_handle() as isize)).unwrap() }
+  }
+
+  #[test]
+  fn release_failure_on_a_destroyed_window_is_not_a_failure() {
+    assert!(release_failure_is_real(true, true));
+    assert!(!release_failure_is_real(true, false));
+    assert!(!release_failure_is_real(false, true));
+    assert!(!release_failure_is_real(false, false));
   }
 
   #[test]
