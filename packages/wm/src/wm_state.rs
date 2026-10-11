@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use tokio::sync::mpsc::{self};
@@ -106,6 +106,25 @@ impl WmState {
     &mut self,
     config: &mut UserConfig,
   ) -> anyhow::Result<()> {
+    // A display that is switched off (or not awake yet at login) looks
+    // unplugged to Windows, and with no monitor there is no workspace to
+    // focus. Wait for one instead of exiting.
+    wait_until_ready(
+      || {
+        self.dispatcher.sorted_displays().is_ok_and(|displays| {
+          displays
+            .iter()
+            .any(|display| NativeMonitorProperties::try_from(display).is_ok())
+        })
+      },
+      |waits| {
+        if waits == 1 {
+          tracing::warn!("No display available. Waiting for one.");
+        }
+        std::thread::sleep(Duration::from_secs(1));
+      },
+    );
+
     // Get the originally focused window when the WM was started.
     let focused_window = self.dispatcher.focused_window().ok();
 
@@ -705,4 +724,45 @@ impl WmState {
 
 impl Drop for WmState {
   fn drop(&mut self) { self.restore_windows(); }
+}
+
+/// Polls `ready` until it is true, calling `wait` (with the number of waits
+/// so far, from 1) between attempts. Returns how many times it waited.
+fn wait_until_ready(
+  mut ready: impl FnMut() -> bool,
+  mut wait: impl FnMut(u32),
+) -> u32 {
+  let mut waits = 0;
+  while !ready() {
+    waits += 1;
+    wait(waits);
+  }
+  waits
+}
+
+#[cfg(test)]
+mod tests {
+  use super::wait_until_ready;
+
+  #[test]
+  fn does_not_wait_when_already_ready() {
+    let mut waited = false;
+    assert_eq!(wait_until_ready(|| true, |_| waited = true), 0);
+    assert!(!waited);
+  }
+
+  #[test]
+  fn waits_until_a_display_appears() {
+    let mut checks = 0;
+    let mut seen = Vec::new();
+    let waits = wait_until_ready(
+      || {
+        checks += 1;
+        checks > 3
+      },
+      |n| seen.push(n),
+    );
+    assert_eq!(waits, 3);
+    assert_eq!(seen, vec![1, 2, 3]);
+  }
 }
