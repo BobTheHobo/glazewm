@@ -411,3 +411,43 @@ impl Drop for IpcServer {
     self.stop();
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use wm_common::BindingModeConfig;
+
+  use super::*;
+
+  /// The resize mode from the user's config, keybindings included.
+  const RESIZE_MODE_YAML: &str = r"
+name: 'resize'
+keybindings:
+  - commands: ['resize --width -2%']
+    bindings: ['h', 'left', 'alt+h', 'alt+left']
+  - commands: ['resize --height +2%']
+    bindings: ['k', 'up', 'alt+k', 'alt+up']
+  - commands: ['wm-disable-binding-mode --name resize']
+    bindings: ['escape', 'enter', 'alt+r']
+";
+
+  #[test]
+  fn binding_modes_response_serializes_with_an_active_mode() {
+    let mode: BindingModeConfig =
+      serde_yaml::from_str(RESIZE_MODE_YAML).unwrap();
+
+    let message = IpcServer::to_client_response_msg(
+      "query binding-modes".to_string(),
+      Ok(ClientResponseData::BindingModes(BindingModesData {
+        binding_modes: vec![mode],
+      })),
+    )
+    .expect("binding-modes response should serialize");
+
+    let Message::Text(text) = message else {
+      panic!("expected a text message");
+    };
+    let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(json["success"], true);
+    assert_eq!(json["data"]["bindingModes"][0]["name"], "resize");
+  }
+}

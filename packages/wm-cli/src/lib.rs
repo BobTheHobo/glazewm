@@ -2,8 +2,7 @@
 #![allow(clippy::missing_errors_doc)]
 
 use anyhow::Context;
-use wm_common::ClientResponseData;
-use wm_ipc_client::IpcClient;
+use wm_ipc_client::{subscription_id, IpcClient};
 
 pub async fn start(args: Vec<String>) -> anyhow::Result<()> {
   let mut client = IpcClient::connect().await?;
@@ -14,26 +13,29 @@ pub async fn start(args: Vec<String>) -> anyhow::Result<()> {
     .await
     .context("Failed to send command to IPC server.")?;
 
+  // Replies are printed as the server sent them. Decoding them into
+  // `wm-common` types first fails for some valid replies (e.g. binding
+  // modes, whose commands don't deserialize from JSON).
   let client_response = client
-    .client_response(&message)
+    .client_response_text(&message)
     .await
     .context("Failed to receive response from IPC server.")?;
 
-  match client_response.data {
+  match subscription_id(&client_response)? {
     // For event subscriptions, omit the initial response message and
     // continuously output subsequent event messages.
-    Some(ClientResponseData::EventSubscribe(data)) => loop {
+    Some(subscription_id) => loop {
       let event_subscription = client
-        .event_subscription(&data.subscription_id)
+        .event_subscription_text(&subscription_id)
         .await
         .context("Failed to receive response from IPC server.")?;
 
-      println!("{}", serde_json::to_string(&event_subscription)?);
+      println!("{event_subscription}");
     },
     // For all other messages, output and exit when the first response
     // message is received.
-    _ => {
-      println!("{}", serde_json::to_string(&client_response)?);
+    None => {
+      println!("{client_response}");
     }
   }
 
