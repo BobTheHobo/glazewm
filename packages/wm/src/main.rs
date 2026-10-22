@@ -35,6 +35,7 @@ use crate::{
   wm::WindowManager,
 };
 
+mod focus_trace;
 mod tracking_log;
 mod commands;
 mod events;

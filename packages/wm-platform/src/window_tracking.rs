@@ -42,3 +42,10 @@ pub fn trace_tracking_inventory(phase: &'static str) {
   tracing::info!(target: "window_tracking", phase, count = handles.len(), ok = result.is_ok(), "inventory");
   for hwnd in handles { trace_tracking_handle(hwnd, phase, 0, 0); }
 }
+
+/// Owning process id of a window (0 if gone). Cheap; no handle is opened.
+pub fn window_process_id(window: &NativeWindow) -> u32 {
+  let mut pid = 0;
+  unsafe { GetWindowThreadProcessId(window.hwnd(), Some(&mut pid)); }
+  pid
+}

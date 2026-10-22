@@ -66,6 +66,9 @@ pub struct WmState {
   /// Whether the OS focused window is the same as the WM focused window.
   pub is_focus_synced: bool,
 
+  /// Foreground-change flight recorder state.
+  pub focus_trace: crate::focus_trace::FocusTrace,
+
   /// Whether the initial state has been populated.
   has_initialized: bool,
 
@@ -94,6 +97,7 @@ impl WmState {
       ignored_windows: Vec::new(),
       is_paused: false,
       is_focus_synced: false,
+      focus_trace: crate::focus_trace::FocusTrace::default(),
       has_initialized: false,
       event_tx,
       exit_tx,

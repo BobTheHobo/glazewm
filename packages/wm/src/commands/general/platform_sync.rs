@@ -93,9 +93,11 @@ fn sync_focus(
   // triggered.
   let result = if let Some(window) = native_window {
     tracing::info!("Setting focus to window: {window}");
+    state.focus_trace.wm_requested(window.native().id().0);
     window.native().focus()
   } else {
     tracing::info!("Setting focus to the desktop window.");
+    state.focus_trace.wm_requested(0);
     state.dispatcher.reset_focus()
   };
 

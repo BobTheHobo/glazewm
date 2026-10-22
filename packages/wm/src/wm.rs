@@ -81,6 +81,26 @@ impl WindowManager {
     let state = &mut self.state;
 
     let sync_scratchpad = !matches!(&event, PlatformEvent::Mouse(_));
+    // Remember what the WM was processing, so a foreground change can name
+    // it. Mouse moves and focus events themselves are not causes.
+    let cause = match &event {
+      PlatformEvent::DisplaySettingsChanged => Some("display-settings-changed"),
+      PlatformEvent::Keybinding(_) => Some("keybinding"),
+      PlatformEvent::Mouse(_) => None,
+      PlatformEvent::Window(window_event) => match window_event {
+        WindowEvent::Focused { .. } => None,
+        WindowEvent::Shown { .. } => Some("window-shown"),
+        WindowEvent::Hidden { .. } => Some("window-hidden"),
+        WindowEvent::MovedOrResized { .. } => Some("window-moved-or-resized"),
+        WindowEvent::Minimized { .. } => Some("window-minimized"),
+        WindowEvent::MinimizeEnded { .. } => Some("window-minimize-ended"),
+        WindowEvent::TitleChanged { .. } => Some("window-title-changed"),
+        WindowEvent::Destroyed { .. } => Some("window-destroyed"),
+      },
+    };
+    if let Some(cause) = cause {
+      state.focus_trace.note(cause);
+    }
     match event {
       PlatformEvent::DisplaySettingsChanged => {
         handle_display_settings_changed(state, config)
@@ -229,6 +249,7 @@ impl WindowManager {
       return Ok(());
     }
 
+    state.focus_trace.note(crate::focus_trace::command_name(&format!("{command:?}")));
     if subject_container.is_detached() {
       bail!("Cannot run command because subject container is detached.");
     }

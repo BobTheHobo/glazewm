@@ -36,6 +36,18 @@ pub fn handle_window_focused(
   // target focus container, we reassign any focus events 100ms after
   // close/minimize. This will cause focus to briefly flicker to the OS
   // focus target and then to the WM's focus target.
+  let synced = state.is_focus_synced;
+  state.focus_trace.foreground(native_window.id().0, synced, || {
+    (
+      wm_platform::window_process_id(native_window),
+      native_window.process_name().unwrap_or_else(|_| "?".into()),
+      found_window
+        .as_ref()
+        .and_then(|window| window.workspace())
+        .map_or_else(|| "-".into(), |workspace| workspace.config().name),
+    )
+  });
+
   if should_override_focus(state) {
     state.pending_sync.queue_focus_change();
     return Ok(());
